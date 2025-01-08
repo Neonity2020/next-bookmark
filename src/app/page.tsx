@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Plus, Download, Upload } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Plus, Folder, Download, Upload } from 'lucide-react';
 import BookmarkCard from './components/BookmarkCard';
 import AddBookmarkModal from './components/AddBookmarkModal';
+import AddCategoryModal from './components/AddCategoryModal';
 
 interface Bookmark {
   id: string;
@@ -13,199 +14,257 @@ interface Bookmark {
   description: string;
 }
 
-function App() {
-  const [defaultBookmarks, setDefaultBookmarks] = useState<Bookmark[]>([]);
-  const [customBookmarks, setCustomBookmarks] = useState<Bookmark[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
-  const [activeFolder, setActiveFolder] = useState<'default' | 'custom'>('default');
+type CategoryId = 'default' | 'custom' | string;
 
-  // 在组件挂载后加载本地存储的数据
+interface Category {
+  id: CategoryId;
+  name: string;
+  bookmarks: Bookmark[];
+}
+
+function App() {
+  const [mounted, setMounted] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([
+    { id: 'default', name: '默认收藏夹', bookmarks: [] },
+    { id: 'custom', name: '自定义收藏夹', bookmarks: [] }
+  ]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
+  const [activeCategory, setActiveCategory] = useState<CategoryId>('default');
+
   useEffect(() => {
-    const savedDefaultBookmarks = localStorage.getItem('defaultBookmarks');
-    const savedCustomBookmarks = localStorage.getItem('customBookmarks');
-    
-    if (savedDefaultBookmarks) {
-      setDefaultBookmarks(JSON.parse(savedDefaultBookmarks));
+    const savedData = localStorage.getItem('bookmarkCategories');
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setCategories(parsed);
+      } catch (e) {
+        console.error('Failed to parse saved data:', e);
+      }
     }
-    if (savedCustomBookmarks) {
-      setCustomBookmarks(JSON.parse(savedCustomBookmarks));
-    }
+    setMounted(true);
   }, []);
 
-  // 当书签数据改变时保存到本地存储
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('defaultBookmarks', JSON.stringify(defaultBookmarks));
-      localStorage.setItem('customBookmarks', JSON.stringify(customBookmarks));
+    if (mounted) {
+      localStorage.setItem('bookmarkCategories', JSON.stringify(categories));
     }
-  }, [defaultBookmarks, customBookmarks]);
+  }, [categories, mounted]);
+
+  const addCategory = (categoryName: string) => {
+    const newCategory: Category = {
+      id: Date.now().toString(),
+      name: categoryName,
+      bookmarks: []
+    };
+    setCategories(prev => [...prev, newCategory]);
+    setIsCategoryModalOpen(false);
+  };
+
+  const deleteCategory = (categoryId: string) => {
+    // 不允许删除默认和自定义分类
+    if (categoryId === 'default' || categoryId === 'custom') {
+      alert('不能删除默认分类');
+      return;
+    }
+    setCategories(prev => prev.filter(category => category.id !== categoryId));
+  };
 
   const addBookmark = (bookmark: Bookmark) => {
-    if (activeFolder === 'default') {
-      setDefaultBookmarks(prev => [...prev, bookmark]);
-    } else {
-      setCustomBookmarks(prev => [...prev, bookmark]);
-    }
+    setCategories(prev => 
+      prev.map(category => 
+        category.id === activeCategory 
+          ? { ...category, bookmarks: [...category.bookmarks, bookmark] }
+          : category
+      )
+    );
     setIsModalOpen(false);
   };
 
   const editBookmark = (bookmark: Bookmark) => {
-    const setBookmarks = activeFolder === 'default' ? setDefaultBookmarks : setCustomBookmarks;
-    setBookmarks(prevBookmarks => 
-      prevBookmarks.map(b => b.id === bookmark.id ? bookmark : b)
+    setCategories(prev => 
+      prev.map(category => {
+        if (category.id === activeCategory) {
+          return {
+            ...category,
+            bookmarks: category.bookmarks.map(b => 
+              b.id === bookmark.id ? bookmark : b
+            )
+          };
+        }
+        return category;
+      })
     );
     setEditingBookmark(null);
     setIsModalOpen(false);
   };
 
-  const deleteBookmark = (id: string, folder: 'default' | 'custom') => {
-    const setBookmarks = folder === 'default' ? setDefaultBookmarks : setCustomBookmarks;
-    setBookmarks(prevBookmarks => 
-      prevBookmarks.filter(bookmark => bookmark.id !== id)
+  const deleteBookmark = (id: string, categoryId: string) => {
+    setCategories(prev => 
+      prev.map(category => 
+        category.id === categoryId 
+          ? { ...category, bookmarks: category.bookmarks.filter(b => b.id !== id) }
+          : category
+      )
     );
   };
 
-  const moveBookmark = (fromIndex: number, toIndex: number, folder: 'default' | 'custom') => {
-    const setBookmarks = folder === 'default' ? setDefaultBookmarks : setCustomBookmarks;
-    setBookmarks(prevBookmarks => {
-      const updatedBookmarks = [...prevBookmarks];
-      const [movedBookmark] = updatedBookmarks.splice(fromIndex, 1);
-      updatedBookmarks.splice(toIndex, 0, movedBookmark);
-      return updatedBookmarks;
-    });
+  const moveBookmark = (fromIndex: number, toIndex: number, categoryId: string) => {
+    setCategories(prev => 
+      prev.map(category => {
+        if (category.id === categoryId) {
+          const updatedBookmarks = [...category.bookmarks];
+          const [movedBookmark] = updatedBookmarks.splice(fromIndex, 1);
+          updatedBookmarks.splice(toIndex, 0, movedBookmark);
+          return { ...category, bookmarks: updatedBookmarks };
+        }
+        return category;
+      })
+    );
   };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const exportBookmarks = () => {
-    const bookmarksJson = JSON.stringify(defaultBookmarks, null, 2);
-    const blob = new Blob([bookmarksJson], { type: 'application/json' });
+  const exportData = () => {
+    const dataStr = JSON.stringify(categories, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'bookmarks.json';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'bookmarks.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  const importBookmarks = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
         try {
-          const importedBookmarks = JSON.parse(e.target?.result as string);
-          if (activeFolder === 'default') {
-            setDefaultBookmarks(importedBookmarks);
-          } else {
-            setCustomBookmarks(importedBookmarks);
-          }
+          const content = e.target?.result as string;
+          const parsed = JSON.parse(content);
+          setCategories(parsed);
         } catch (error) {
-          console.error('导入书签时出错:', error);
-          alert('导入失败，请确保文件格式正确。');
+          alert(`导入失败：${(error as Error).message}`);
         }
       };
       reader.readAsText(file);
     }
   };
 
+  if (!mounted) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 p-8">
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 space-y-4 sm:space-y-0">
+        {/* 分类管理区域 */}
+        <div className="mb-8 flex items-center justify-between">
           <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">我的网页导航</h1>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex space-x-2">
+            {/* 导入按钮 */}
+            <label className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center cursor-pointer">
+              <Upload className="inline-block mr-2" size={18} />
+              导入数据
+              <input
+                type="file"
+                accept=".json"
+                onChange={importData}
+                className="hidden"
+              />
+            </label>
+            
+            {/* 导出按钮 */}
             <button
-              onClick={exportBookmarks}
+              onClick={exportData}
               className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center"
             >
               <Download className="inline-block mr-2" size={18} />
-              导出书签
+              导出数据
             </button>
+
+            {/* 添加分类按钮 */}
             <button
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => setIsCategoryModalOpen(true)}
               className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors flex items-center"
             >
-              <Upload className="inline-block mr-2" size={18} />
-              导入书签
+              <Folder className="inline-block mr-2" size={18} />
+              添加分类
             </button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={importBookmarks}
-              accept=".json"
-              className="hidden"
-            />
-          </div>
-        </div>
-        
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">默认收藏夹</h2>
-          <div className="bg-white bg-opacity-70 rounded-lg shadow-md p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {defaultBookmarks.map((bookmark, index) => (
-                <BookmarkCard
-                  key={bookmark.id}
-                  bookmark={bookmark}
-                  onEdit={() => {
-                    setEditingBookmark(bookmark);
-                    setActiveFolder('default');
-                    setIsModalOpen(true);
-                  }}
-                  onDelete={() => deleteBookmark(bookmark.id, 'default')}
-                  onMoveUp={() => index > 0 && moveBookmark(index, index - 1, 'default')}
-                  onMoveDown={() => index < defaultBookmarks.length - 1 && moveBookmark(index, index + 1, 'default')}
-                />
-              ))}
-              <button
-                onClick={() => {
-                  setActiveFolder('default');
-                  setIsModalOpen(true);
-                }}
-                className="h-40 bg-white bg-opacity-50 rounded-lg shadow-md flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors duration-200"
-              >
-                <Plus size={24} />
-                <span className="ml-2">添加书签</span>
-              </button>
-            </div>
           </div>
         </div>
 
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">自定义收藏夹</h2>
-          <div className="bg-white bg-opacity-70 rounded-lg shadow-md p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {customBookmarks.map((bookmark, index) => (
-                <BookmarkCard
-                  key={bookmark.id}
-                  bookmark={bookmark}
-                  onEdit={() => {
-                    setEditingBookmark(bookmark);
-                    setActiveFolder('custom');
-                    setIsModalOpen(true);
-                  }}
-                  onDelete={() => deleteBookmark(bookmark.id, 'custom')}
-                  onMoveUp={() => index > 0 && moveBookmark(index, index - 1, 'custom')}
-                  onMoveDown={() => index < customBookmarks.length - 1 && moveBookmark(index, index + 1, 'custom')}
-                />
-              ))}
+        {/* 分类标签页 */}
+        <div className="flex mb-4 space-x-2">
+          {categories.map(category => (
+            <div key={category.id} className="flex items-center">
               <button
-                onClick={() => {
-                  setActiveFolder('custom');
-                  setIsModalOpen(true);
-                }}
-                className="h-40 bg-white bg-opacity-50 rounded-lg shadow-md flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                onClick={() => setActiveCategory(category.id)}
+                className={`px-4 py-2 rounded ${
+                  activeCategory === category.id 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-gray-200 text-gray-700'
+                }`}
               >
-                <Plus size={24} />
-                <span className="ml-2">添加书签</span>
+                {category.name}
               </button>
+              {category.id !== 'default' && category.id !== 'custom' && (
+                <span 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteCategory(category.id);
+                  }} 
+                  className="ml-2 text-red-500 hover:text-red-700 cursor-pointer"
+                >
+                  ✕
+                </span>
+              )}
             </div>
-          </div>
+          ))}
         </div>
+
+        {/* 书签展示区域 */}
+        {categories.map(category => (
+          activeCategory === category.id && (
+            <div key={category.id} className="mb-8">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-4">{category.name}</h2>
+              <div className="bg-white bg-opacity-70 rounded-lg shadow-md p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {category.bookmarks.map((bookmark, index) => (
+                    <BookmarkCard
+                      key={bookmark.id}
+                      bookmark={bookmark}
+                      onEdit={() => {
+                        setEditingBookmark(bookmark);
+                        setActiveCategory(category.id);
+                        setIsModalOpen(true);
+                      }}
+                      onDelete={() => deleteBookmark(bookmark.id, category.id)}
+                      onMoveUp={() => index > 0 && moveBookmark(index, index - 1, category.id)}
+                      onMoveDown={() => index < category.bookmarks.length - 1 && moveBookmark(index, index + 1, category.id)}
+                    />
+                  ))}
+                  <button
+                    onClick={() => {
+                      setActiveCategory(category.id);
+                      setIsModalOpen(true);
+                    }}
+                    className="h-40 bg-white bg-opacity-50 rounded-lg shadow-md flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                  >
+                    <Plus size={24} />
+                    <span className="ml-2">添加书签</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        ))}
       </div>
+
+      {/* 添加书签模态框 */}
       {isModalOpen && (
         <AddBookmarkModal
           onClose={() => {
@@ -214,7 +273,15 @@ function App() {
           }}
           onSave={editingBookmark ? editBookmark : addBookmark}
           editingBookmark={editingBookmark}
-          folder="default"
+          folder={activeCategory}
+        />
+      )}
+
+      {/* 添加分类模态框 */}
+      {isCategoryModalOpen && (
+        <AddCategoryModal
+          onClose={() => setIsCategoryModalOpen(false)}
+          onSave={addCategory}
         />
       )}
     </div>

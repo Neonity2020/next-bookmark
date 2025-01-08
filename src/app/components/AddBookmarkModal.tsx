@@ -13,12 +13,12 @@ interface AddBookmarkModalProps {
   onClose: () => void;
   onSave: (bookmark: Bookmark) => void;
   editingBookmark: Bookmark | null;
-  folder: 'default' | 'custom';  // 添加这一行
+  folder: 'default' | 'custom' | string;  // 修改这里以匹配 CategoryId
 }
 
 const colorOptions = [
-  'bg-red-500',
   'bg-blue-500',
+  'bg-red-500',
   'bg-green-500',
   'bg-yellow-500',
   'bg-purple-500',
@@ -30,7 +30,7 @@ const colorOptions = [
 const AddBookmarkModal: React.FC<AddBookmarkModalProps> = ({ onClose, onSave, editingBookmark }) => {
   const [title, setTitle] = useState(editingBookmark?.title || '');
   const [url, setUrl] = useState(editingBookmark?.url || '');
-  const [color, setColor] = useState(editingBookmark?.color || '#3B82F6');
+  const [color, setColor] = useState(editingBookmark?.color || 'bg-blue-500');
   const [description, setDescription] = useState(editingBookmark?.description || ''); // 新增
 
   useEffect(() => {
