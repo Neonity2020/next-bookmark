@@ -117,13 +117,25 @@ function App() {
   };
 
   const deleteBookmark = (id: string, categoryId: string) => {
-    setCategories(prev => 
-      prev.map(category => 
-        category.id === categoryId 
-          ? { ...category, bookmarks: category.bookmarks.filter(b => b.id !== id) }
-          : category
-      )
+    // 获取要删除的书签信息
+    const category = categories.find(c => c.id === categoryId);
+    const bookmark = category?.bookmarks.find(b => b.id === id);
+    if (!bookmark) return;
+
+    // 添加确认对话框
+    const confirmDelete = window.confirm(
+      `确定要删除书签"${bookmark.title}"吗？`
     );
+
+    if (confirmDelete) {
+      setCategories(prev => 
+        prev.map(category => 
+          category.id === categoryId 
+            ? { ...category, bookmarks: category.bookmarks.filter(b => b.id !== id) }
+            : category
+        )
+      );
+    }
   };
 
   const moveBookmark = (fromIndex: number, toIndex: number, categoryId: string) => {
@@ -178,20 +190,20 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-sky-100 via-violet-100 to-rose-100 p-8">
       <div className="max-w-6xl mx-auto">
         {/* 分类管理区域 */}
-        <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">我的网址导航</h1>
-          <div className="flex space-x-2">
+        <div className="mb-8 flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+          <h1 className="text-xl sm:text-4xl font-bold text-gray-800 whitespace-nowrap">我的网址导航</h1>
+          <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2">
             {/* 导出按钮 */}
             <button
               onClick={exportData}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center"
+              className="px-4 py-2 h-[42px] bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center whitespace-nowrap"
             >
               <Download className="inline-block mr-2" size={18} />
               导出数据
             </button>
 
             {/* 导入按钮 */}
-            <label className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center cursor-pointer">
+            <label className="px-4 py-2 h-[42px] bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center cursor-pointer whitespace-nowrap">
               <Upload className="inline-block mr-2" size={18} />
               导入数据
               <input
@@ -205,7 +217,7 @@ function App() {
             {/* 添加分类按钮 */}
             <button
               onClick={() => setIsCategoryModalOpen(true)}
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors flex items-center"
+              className="px-4 py-2 h-[42px] bg-green-500 text-white rounded hover:bg-green-600 transition-colors flex items-center whitespace-nowrap"
             >
               <Folder className="inline-block mr-2" size={18} />
               添加分类
@@ -246,7 +258,7 @@ function App() {
         {categories.map(category => (
           activeCategory === category.id && (
             <div key={category.id} className="mb-8">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">{category.name}</h2>
+              <h2 className="font-semibold text-gray-800 mb-4 text-xl sm:text-2xl">{category.name}</h2>
               <div className="bg-white bg-opacity-70 rounded-lg shadow-md p-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {category.bookmarks.map((bookmark, index) => (

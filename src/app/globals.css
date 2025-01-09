@@ -42,3 +42,16 @@ body {
   transform: scale(0.9);
   transition: opacity 300ms, transform 300ms;
 }
+
+/* 现有的全局样式之后添加 */
+@media (max-width: 640px) {
+  /* 移动端字体和按钮样式调整 */
+  body {
+    font-size: 14px; /* 缩小基础字体大小 */
+  }
+  /* 通用按钮样式调整 */
+  button {
+    font-size: 12px; /* 缩小按钮文字 */
+    padding: 8px 12px; /* 调整内边距 */
+  }
+}
