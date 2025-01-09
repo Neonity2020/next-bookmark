@@ -32,6 +32,8 @@ function App() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [activeCategory, setActiveCategory] = useState<CategoryId>('default');
+  const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+  const [editingCategoryName, setEditingCategoryName] = useState<string>('');
 
   useEffect(() => {
     const savedData = localStorage.getItem('bookmarkCategories');
@@ -182,6 +184,23 @@ function App() {
     }
   };
 
+  const handleCategoryNameChange = (categoryId: string, newName: string) => {
+    // 更新分类名称的逻辑
+    updateCategoryName(categoryId, newName);
+    setEditingCategoryId(null);
+  };
+
+  const updateCategoryName = (categoryId: string, newName: string) => {
+    if (!newName.trim()) return;
+    setCategories(prev => 
+      prev.map(category => 
+        category.id === categoryId 
+          ? { ...category, name: newName.trim() }
+          : category
+      )
+    );
+  };
+
   if (!mounted) {
     return null;
   }
@@ -226,19 +245,44 @@ function App() {
         </div>
 
         {/* 分类标签页 */}
-        <div className="flex flex-wrap mb-4 space-x-2 space-y-2">
+        <div className="flex flex-wrap gap-2 mb-8">
           {categories.map(category => (
             <div key={category.id} className="flex items-center">
-              <button
-                onClick={() => setActiveCategory(category.id)}
-                className={`px-4 py-2 rounded break-words max-w-[200px] ${
-                  activeCategory === category.id 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-200 text-gray-700'
-                }`}
-              >
-                {category.name}
-              </button>
+              {editingCategoryId === category.id ? (
+                <input
+                  type="text"
+                  value={editingCategoryName}
+                  onChange={(e) => setEditingCategoryName(e.target.value)}
+                  onBlur={() => handleCategoryNameChange(category.id, editingCategoryName)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleCategoryNameChange(category.id, editingCategoryName);
+                    }
+                    if (e.key === 'Escape') {
+                      setEditingCategoryId(null);
+                    }
+                  }}
+                  autoFocus
+                  className="px-2 py-1 border rounded h-[42px]"
+                />
+              ) : (
+                <button
+                  onClick={() => setActiveCategory(category.id)}
+                  onDoubleClick={() => {
+                    if (category.id !== 'default' && category.id !== 'custom') {
+                      setEditingCategoryId(category.id);
+                      setEditingCategoryName(category.name);
+                    }
+                  }}
+                  className={`px-4 py-2 rounded h-[42px] min-w-[100px] flex items-center justify-center ${
+                    activeCategory === category.id 
+                      ? 'bg-blue-500 text-white' 
+                      : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  {category.name}
+                </button>
+              )}
               {category.id !== 'default' && category.id !== 'custom' && (
                 <span 
                   onClick={(e) => {
