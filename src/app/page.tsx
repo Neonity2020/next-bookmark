@@ -68,7 +68,23 @@ function App() {
       alert('不能删除默认分类');
       return;
     }
-    setCategories(prev => prev.filter(category => category.id !== categoryId));
+
+    // 获取要删除的分类名称
+    const categoryToDelete = categories.find(c => c.id === categoryId);
+    if (!categoryToDelete) return;
+
+    // 添加确认对话框
+    const confirmDelete = window.confirm(
+      `确定要删除分类"${categoryToDelete.name}"吗？\n该分类下的所有书签都将被删除。`
+    );
+
+    if (confirmDelete) {
+      setCategories(prev => prev.filter(category => category.id !== categoryId));
+      // 如果删除的是当前激活的分类，切换到默认分类
+      if (categoryId === activeCategory) {
+        setActiveCategory('default');
+      }
+    }
   };
 
   const addBookmark = (bookmark: Bookmark) => {
@@ -159,12 +175,21 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-purple-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-violet-100 to-rose-100 p-8">
       <div className="max-w-6xl mx-auto">
         {/* 分类管理区域 */}
         <div className="mb-8 flex items-center justify-between">
-          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">我的网页导航</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800">我的网址导航</h1>
           <div className="flex space-x-2">
+            {/* 导出按钮 */}
+            <button
+              onClick={exportData}
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center"
+            >
+              <Download className="inline-block mr-2" size={18} />
+              导出数据
+            </button>
+
             {/* 导入按钮 */}
             <label className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center cursor-pointer">
               <Upload className="inline-block mr-2" size={18} />
@@ -176,15 +201,6 @@ function App() {
                 className="hidden"
               />
             </label>
-            
-            {/* 导出按钮 */}
-            <button
-              onClick={exportData}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center"
-            >
-              <Download className="inline-block mr-2" size={18} />
-              导出数据
-            </button>
 
             {/* 添加分类按钮 */}
             <button
