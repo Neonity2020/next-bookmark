@@ -305,9 +305,16 @@ function App() {
                         {category.id !== 'default' && category.id !== 'custom' && (
                           <div
                             {...provided.dragHandleProps}
-                            className="w-4 h-8 flex items-center justify-center mx-1 cursor-grab opacity-30 hover:opacity-100"
+                            className="w-6 h-8 flex items-center justify-center mx-1 cursor-grab opacity-40 hover:opacity-100 bg-gray-100 hover:bg-gray-200 rounded transition-all duration-200"
                           >
-                            ⋮⋮
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-gray-600">
+                              <circle cx="4" cy="4" r="1.5" />
+                              <circle cx="12" cy="4" r="1.5" />
+                              <circle cx="4" cy="12" r="1.5" />
+                              <circle cx="12" cy="12" r="1.5" />
+                              <circle cx="4" cy="8" r="1.5" />
+                              <circle cx="12" cy="8" r="1.5" />
+                            </svg>
                           </div>
                         )}
                         
@@ -328,7 +335,7 @@ function App() {
                                 }
                               }}
                               autoFocus
-                              className="px-2 py-1 border rounded"
+                              className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-[42px] text-gray-800 font-medium bg-white"
                             />
                           ) : (
                             <button
@@ -339,10 +346,10 @@ function App() {
                                   setEditingCategoryName(category.name);
                                 }
                               }}
-                              className={`px-4 py-2 rounded break-words max-w-[200px] ${
+                              className={`px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 min-w-[100px] ${
                                 activeCategory === category.id 
-                                  ? 'bg-blue-500 text-white' 
-                                  : 'bg-gray-200 text-gray-700'
+                                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium' 
+                                  : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
                               }`}
                             >
                               {category.name}
@@ -354,7 +361,7 @@ function App() {
                                 e.stopPropagation();
                                 deleteCategory(category.id);
                               }} 
-                              className="ml-2 text-red-500 hover:text-red-700 cursor-pointer"
+                              className="ml-2 text-red-500 hover:text-red-700 cursor-pointer hover:scale-110 transition-transform duration-200"
                             >
                               ✕
                             </span>
