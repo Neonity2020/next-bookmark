@@ -192,19 +192,19 @@ function App() {
         {/* 分类管理区域 */}
         <div className="mb-8 flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
           <h1 className="text-xl sm:text-4xl font-bold text-gray-800 whitespace-nowrap">我的网址导航</h1>
-          <div className="flex flex-wrap justify-center sm:justify-start items-center gap-2">
+          <div className="w-full sm:w-auto grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
             {/* 导出按钮 */}
             <button
               onClick={exportData}
-              className="px-4 py-2 h-[42px] bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center whitespace-nowrap"
+              className="px-2 sm:px-4 py-2 h-[42px] bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center whitespace-nowrap text-sm sm:text-base"
             >
-              <Download className="inline-block mr-2" size={18} />
+              <Download className="inline-block mr-1 sm:mr-2" size={16} />
               导出数据
             </button>
 
             {/* 导入按钮 */}
-            <label className="px-4 py-2 h-[42px] bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center cursor-pointer whitespace-nowrap">
-              <Upload className="inline-block mr-2" size={18} />
+            <label className="px-2 sm:px-4 py-2 h-[42px] bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center cursor-pointer whitespace-nowrap text-sm sm:text-base">
+              <Upload className="inline-block mr-1 sm:mr-2" size={16} />
               导入数据
               <input
                 type="file"
@@ -217,21 +217,21 @@ function App() {
             {/* 添加分类按钮 */}
             <button
               onClick={() => setIsCategoryModalOpen(true)}
-              className="px-4 py-2 h-[42px] bg-green-500 text-white rounded hover:bg-green-600 transition-colors flex items-center whitespace-nowrap"
+              className="px-2 sm:px-4 py-2 h-[42px] bg-green-500 text-white rounded hover:bg-green-600 transition-colors flex items-center justify-center whitespace-nowrap text-sm sm:text-base"
             >
-              <Folder className="inline-block mr-2" size={18} />
+              <Folder className="inline-block mr-1 sm:mr-2" size={16} />
               添加分类
             </button>
           </div>
         </div>
 
         {/* 分类标签页 */}
-        <div className="flex mb-4 space-x-2">
+        <div className="flex flex-wrap mb-4 space-x-2 space-y-2">
           {categories.map(category => (
             <div key={category.id} className="flex items-center">
               <button
                 onClick={() => setActiveCategory(category.id)}
-                className={`px-4 py-2 rounded ${
+                className={`px-4 py-2 rounded break-words max-w-[200px] ${
                   activeCategory === category.id 
                     ? 'bg-blue-500 text-white' 
                     : 'bg-gray-200 text-gray-700'
