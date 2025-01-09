@@ -5,6 +5,7 @@ import { Plus, Folder, Download, Upload } from 'lucide-react';
 import BookmarkCard from './components/BookmarkCard';
 import AddBookmarkModal from './components/AddBookmarkModal';
 import AddCategoryModal from './components/AddCategoryModal';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 interface Bookmark {
   id: string;
@@ -201,6 +202,38 @@ function App() {
     );
   };
 
+  const onDragEnd = (result: DropResult) => {
+    const { source, destination } = result;
+
+    // 如果目标位置不存在，直接返回
+    if (!destination) return;
+
+    // 如果拖动的起始和结束位置相同，也直接返回
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    // 不允许拖放到默认和自定义收藏夹之前（前两个位置）
+    if (destination.index < 2) {
+      return;
+    }
+
+    // 创建新的分类数组
+    const newCategories = Array.from(categories);
+    
+    // 移除被拖动的分类
+    const [reorderedCategory] = newCategories.splice(source.index, 1);
+    
+    // 将分类插入到新位置
+    newCategories.splice(destination.index, 0, reorderedCategory);
+
+    // 更新分类顺序
+    setCategories(newCategories);
+  };
+
   if (!mounted) {
     return null;
   }
@@ -245,58 +278,97 @@ function App() {
         </div>
 
         {/* 分类标签页 */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          {categories.map(category => (
-            <div key={category.id} className="flex items-center">
-              {editingCategoryId === category.id ? (
-                <input
-                  type="text"
-                  value={editingCategoryName}
-                  onChange={(e) => setEditingCategoryName(e.target.value)}
-                  onBlur={() => handleCategoryNameChange(category.id, editingCategoryName)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleCategoryNameChange(category.id, editingCategoryName);
-                    }
-                    if (e.key === 'Escape') {
-                      setEditingCategoryId(null);
-                    }
-                  }}
-                  autoFocus
-                  className="px-2 py-1 border rounded h-[42px]"
-                />
-              ) : (
-                <button
-                  onClick={() => setActiveCategory(category.id)}
-                  onDoubleClick={() => {
-                    if (category.id !== 'default' && category.id !== 'custom') {
-                      setEditingCategoryId(category.id);
-                      setEditingCategoryName(category.name);
-                    }
-                  }}
-                  className={`px-4 py-2 rounded h-[42px] min-w-[100px] flex items-center justify-center ${
-                    activeCategory === category.id 
-                      ? 'bg-blue-500 text-white' 
-                      : 'bg-gray-200 text-gray-700'
-                  }`}
-                >
-                  {category.name}
-                </button>
-              )}
-              {category.id !== 'default' && category.id !== 'custom' && (
-                <span 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    deleteCategory(category.id);
-                  }} 
-                  className="ml-2 text-red-500 hover:text-red-700 cursor-pointer"
-                >
-                  ✕
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId="categories" direction="horizontal">
+            {(provided) => (
+              <div
+                ref={provided.innerRef}
+                {...provided.droppableProps}
+                className="flex flex-wrap gap-2 mb-8"
+              >
+                {categories.map((category, index) => (
+                  <Draggable 
+                    key={category.id} 
+                    draggableId={category.id} 
+                    index={index}
+                    isDragDisabled={category.id === 'default' || category.id === 'custom'}
+                  >
+                    {(provided, snapshot) => (
+                      <div
+                        ref={provided.innerRef}
+                        className={`flex items-center ${
+                          snapshot.isDragging ? 'opacity-70 shadow-lg scale-105' : ''
+                        }`}
+                        {...provided.draggableProps}
+                      >
+                        {/* 拖动柄 */}
+                        {category.id !== 'default' && category.id !== 'custom' && (
+                          <div
+                            {...provided.dragHandleProps}
+                            className="w-4 h-8 flex items-center justify-center mx-1 cursor-grab opacity-30 hover:opacity-100"
+                          >
+                            ⋮⋮
+                          </div>
+                        )}
+                        
+                        {/* 标签内容 */}
+                        <div className="flex items-center">
+                          {editingCategoryId === category.id ? (
+                            <input
+                              type="text"
+                              value={editingCategoryName}
+                              onChange={(e) => setEditingCategoryName(e.target.value)}
+                              onBlur={() => handleCategoryNameChange(category.id, editingCategoryName)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleCategoryNameChange(category.id, editingCategoryName);
+                                }
+                                if (e.key === 'Escape') {
+                                  setEditingCategoryId(null);
+                                }
+                              }}
+                              autoFocus
+                              className="px-2 py-1 border rounded"
+                            />
+                          ) : (
+                            <button
+                              onClick={() => setActiveCategory(category.id)}
+                              onDoubleClick={() => {
+                                if (category.id !== 'default' && category.id !== 'custom') {
+                                  setEditingCategoryId(category.id);
+                                  setEditingCategoryName(category.name);
+                                }
+                              }}
+                              className={`px-4 py-2 rounded break-words max-w-[200px] ${
+                                activeCategory === category.id 
+                                  ? 'bg-blue-500 text-white' 
+                                  : 'bg-gray-200 text-gray-700'
+                              }`}
+                            >
+                              {category.name}
+                            </button>
+                          )}
+                          {category.id !== 'default' && category.id !== 'custom' && (
+                            <span 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                deleteCategory(category.id);
+                              }} 
+                              className="ml-2 text-red-500 hover:text-red-700 cursor-pointer"
+                            >
+                              ✕
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
 
         {/* 书签展示区域 */}
         {categories.map(category => (
