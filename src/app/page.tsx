@@ -305,7 +305,7 @@ function App() {
                           h-10 w-[120px] shrink-0 justify-center cursor-pointer group
                           ${activeCategory === category.id 
                             ? 'bg-blue-500 text-blue-500 shadow-lg ring-2 ring-blue-300 ring-offset-2 ring-offset-blue-50' 
-                            : 'hover:bg-gray-50 hover:shadow-sm'}`}
+                            : 'hover:bg-gray-50 hover:shadow-sm text-gray-700'}`}
                         style={{
                           ...provided.draggableProps.style,
                           transform: snapshot.isDragging 
