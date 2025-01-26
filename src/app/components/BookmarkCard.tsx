@@ -18,29 +18,9 @@ interface BookmarkCardProps {
   onMoveDown?: () => void;
 }
 
-// 获取网站 favicon 的函数
-const getFaviconUrl = (url: string) => {
-  try {
-    const parsedUrl = new URL(url);
-    // 使用多种常见的 favicon 获取方式
-    const faviconOptions = [
-      `https://icon.horse/icon/${parsedUrl.hostname}`, // 首选 icon.horse 服务
-      `https://www.google.com/s2/favicons?domain=${parsedUrl.hostname}`, // Google favicon 服务
-      `${parsedUrl.origin}/favicon.ico`, // 网站根目录 favicon
-      `${parsedUrl.origin}/favicon.png`, // 备选 favicon
-    ];
-    
-    // 返回第一个有效的 favicon URL，如果都失败则使用本站 favicon
-    return faviconOptions[0] || '/favicon.ico';
-  } catch {
-    // 如果 URL 解析失败，返回本站 favicon
-    return '/favicon.ico';
-  }
-};
-
 const truncateUrl = (url: string, maxLength: number = 20) => {
-  // 去除协议和 www.
-  const cleanUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '');
+  // 去除协议、www. 和末尾的 "/"
+  const cleanUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
 
   if (cleanUrl.length <= maxLength) return cleanUrl;
 
@@ -57,7 +37,45 @@ const truncateUrl = (url: string, maxLength: number = 20) => {
 };
 
 const BookmarkCard: React.FC<BookmarkCardProps> = ({ bookmark, onEdit, onDelete, onMoveUp, onMoveDown }) => {
-  const faviconUrl = getFaviconUrl(bookmark.url);
+  const [faviconUrl, setFaviconUrl] = React.useState('/favicon.ico'); // 默认为本地 favicon
+
+  React.useEffect(() => {
+    const fetchFavicon = async () => {
+      const hostname = new URL(bookmark.url).hostname;
+      const localStorageKey = `favicon_${hostname}`;
+      
+      // 首先检查 localStorage 是否已缓存图标
+      const cachedFavicon = localStorage.getItem(localStorageKey);
+      if (cachedFavicon) {
+        setFaviconUrl(cachedFavicon);
+        return;
+      }
+
+      const fallbackOptions = [
+        `https://icon.horse/icon/${hostname}`,
+        `https://www.google.com/s2/favicons?domain=${hostname}`,
+        `https://favicon.githubusercontent.com/v1/${hostname}`,
+        '/favicon.ico'
+      ];
+
+      for (const url of fallbackOptions) {
+        try {
+          const response = await fetch(url, { method: 'HEAD' });
+          if (response.ok) {
+            // 将成功的图标 URL 存储到 localStorage
+            localStorage.setItem(localStorageKey, url);
+            setFaviconUrl(url);
+            return;
+          }
+        } catch {
+          // 如果获取失败，继续尝试下一个
+          continue;
+        }
+      }
+    };
+
+    fetchFavicon();
+  }, [bookmark.url]);
 
   return (
     <div className={`rounded-lg shadow-md overflow-hidden flex flex-col ${bookmark.color}`}>
@@ -69,10 +87,7 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({ bookmark, onEdit, onDelete,
           width={32}
           height={32}
           className="mr-3 mt-1 rounded-full object-cover"
-          onError={(e) => {
-            // 如果所有 favicon 加载失败，使用本站 favicon
-            (e.target as HTMLImageElement).src = '/favicon.ico';
-          }}
+          onError={() => setFaviconUrl('/favicon.ico')} // 最终备选
         />
         <div className="overflow-hidden">
           <h3 className="text-xl font-semibold text-gray-900 mb-2 truncate max-w-full">{bookmark.title}</h3>
