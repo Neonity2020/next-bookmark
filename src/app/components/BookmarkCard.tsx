@@ -14,8 +14,8 @@ interface BookmarkCardProps {
   bookmark: Bookmark;
   onEdit: () => void;
   onDelete: () => void;
-  onMoveUp: () => void;
-  onMoveDown: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
 }
 
 // 获取网站 favicon 的函数
@@ -30,15 +30,15 @@ const getFaviconUrl = (url: string) => {
       `${parsedUrl.origin}/favicon.png`, // 备选 favicon
     ];
     
-    // 返回第一个有效的 favicon URL
-    return faviconOptions[0];
+    // 返回第一个有效的 favicon URL，如果都失败则使用本站 favicon
+    return faviconOptions[0] || '/favicon.ico';
   } catch {
-    // 如果 URL 解析失败，返回默认图标
-    return '/default-favicon.png';
+    // 如果 URL 解析失败，返回本站 favicon
+    return '/favicon.ico';
   }
 };
 
-const truncateUrl = (url: string, maxLength: number = 40) => {
+const truncateUrl = (url: string, maxLength: number = 20) => {
   // 去除协议和 www.
   const cleanUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '');
 
@@ -70,21 +70,23 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({ bookmark, onEdit, onDelete,
           height={32}
           className="mr-3 mt-1 rounded-full object-cover"
           onError={(e) => {
-            // 如果 favicon 加载失败，隐藏图标
-            (e.target as HTMLImageElement).style.display = 'none';
+            // 如果所有 favicon 加载失败，使用本站 favicon
+            (e.target as HTMLImageElement).src = '/favicon.ico';
           }}
         />
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">{bookmark.title}</h3>
-          {bookmark.description && (
-            <p className="text-sm text-gray-900 mb-2">{bookmark.description}</p>
+        <div className="overflow-hidden">
+          <h3 className="text-xl font-semibold text-gray-900 mb-2 truncate max-w-full">{bookmark.title}</h3>
+          {bookmark.description ? (
+            <p className="text-sm text-gray-900 mb-2 truncate max-w-full">{bookmark.description}</p>
+          ) : (
+            <p className="text-sm text-gray-500 mb-2 italic">暂无描述</p>
           )}
           <a
             href={bookmark.url}
             title={bookmark.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-sm text-gray-900 hover:underline break-all"
+            className="text-sm text-gray-900 hover:underline break-all whitespace-nowrap overflow-hidden text-ellipsis"
           >
             {truncateUrl(bookmark.url)}
           </a>

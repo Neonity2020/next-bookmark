@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Plus, Folder, Download, Upload } from 'lucide-react';
 import BookmarkCard from './components/BookmarkCard';
 import AddBookmarkModal from './components/AddBookmarkModal';
 import AddCategoryModal from './components/AddCategoryModal';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 interface Bookmark {
   id: string;
@@ -34,7 +34,7 @@ function App() {
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [activeCategory, setActiveCategory] = useState<CategoryId>('default');
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
-  const [editingCategoryName, setEditingCategoryName] = useState<string>('');
+  const [editingName, setEditingName] = useState('');
 
   useEffect(() => {
     const savedData = localStorage.getItem('bookmarkCategories');
@@ -141,20 +141,6 @@ function App() {
     }
   };
 
-  const moveBookmark = (fromIndex: number, toIndex: number, categoryId: string) => {
-    setCategories(prev => 
-      prev.map(category => {
-        if (category.id === categoryId) {
-          const updatedBookmarks = [...category.bookmarks];
-          const [movedBookmark] = updatedBookmarks.splice(fromIndex, 1);
-          updatedBookmarks.splice(toIndex, 0, movedBookmark);
-          return { ...category, bookmarks: updatedBookmarks };
-        }
-        return category;
-      })
-    );
-  };
-
   const exportData = () => {
     const dataStr = JSON.stringify(categories, null, 2);
     const blob = new Blob([dataStr], { type: 'application/json' });
@@ -185,53 +171,57 @@ function App() {
     }
   };
 
-  const handleCategoryNameChange = (categoryId: string, newName: string) => {
-    // 更新分类名称的逻辑
-    updateCategoryName(categoryId, newName);
-    setEditingCategoryId(null);
+  const editCategoryName = (categoryId: string, newName: string) => {
+    if (newName.trim() === '') return;
+    setCategories(prev => prev.map(category => 
+      category.id === categoryId 
+        ? { ...category, name: newName.trim() }
+        : category
+    ));
   };
 
-  const updateCategoryName = (categoryId: string, newName: string) => {
-    if (!newName.trim()) return;
-    setCategories(prev => 
-      prev.map(category => 
-        category.id === categoryId 
-          ? { ...category, name: newName.trim() }
-          : category
-      )
-    );
-  };
-
+  // 新增拖放处理函数
   const onDragEnd = (result: DropResult) => {
-    const { source, destination } = result;
+    const { source, destination, type } = result;
 
-    // 如果目标位置不存在，直接返回
-    if (!destination) return;
+    // 如果没有目标位置或者源位置和目标位置相同，直接返回
+    if (!destination || source.index === destination.index) return;
 
-    // 如果拖动的起始和结束位置相同，也直接返回
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) {
+    // 处理分类拖放
+    if (type === 'CATEGORY') {
+      // 如果是固定分类或尝试移动到固定分类位置，则不允许
+      if (source.index < 2 || destination.index < 2) return;
+
+      // 创建分类数组的副本
+      const newCategories = Array.from(categories);
+      
+      // 移动分类
+      const [movedCategory] = newCategories.splice(source.index, 1);
+      newCategories.splice(destination.index, 0, movedCategory);
+
+      // 更新状态
+      setCategories(newCategories);
       return;
     }
 
-    // 不允许拖放到默认和自定义收藏夹之前（前两个位置）
-    if (destination.index < 2) {
-      return;
+    // 处理书签拖放
+    if (type === 'BOOKMARK') {
+      setCategories(prevCategories => 
+        prevCategories.map(category => {
+          if (category.id === source.droppableId) {
+            const newBookmarks = Array.from(category.bookmarks);
+            const [movedBookmark] = newBookmarks.splice(source.index, 1);
+            newBookmarks.splice(destination.index, 0, movedBookmark);
+            
+            return {
+              ...category,
+              bookmarks: newBookmarks
+            };
+          }
+          return category;
+        })
+      );
     }
-
-    // 创建新的分类数组
-    const newCategories = Array.from(categories);
-    
-    // 移除被拖动的分类
-    const [reorderedCategory] = newCategories.splice(source.index, 1);
-    
-    // 将分类插入到新位置
-    newCategories.splice(destination.index, 0, reorderedCategory);
-
-    // 更新分类顺序
-    setCategories(newCategories);
   };
 
   if (!mounted) {
@@ -239,134 +229,139 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-sky-100 via-violet-100 to-rose-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* 分类管理区域 */}
-        <div className="mb-8 flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-          <h1 className="text-xl sm:text-4xl font-bold text-gray-800 whitespace-nowrap">我的网址导航</h1>
-          <div className="w-full sm:w-auto grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
-            {/* 导出按钮 */}
-            <button
-              onClick={exportData}
-              className="px-2 sm:px-4 py-2 h-[42px] bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center whitespace-nowrap text-sm sm:text-base"
-            >
-              <Download className="inline-block mr-1 sm:mr-2" size={16} />
-              导出数据
-            </button>
+    <DragDropContext onDragEnd={onDragEnd}>
+      <div className="min-h-screen bg-gradient-to-br from-sky-100 via-violet-100 to-rose-100 p-8">
+        <div className="max-w-6xl mx-auto">
+          {/* 分类管理区域 */}
+          <div className="mb-8 flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
+            <h1 className="text-xl sm:text-4xl font-bold text-gray-800 whitespace-nowrap">我的网址导航</h1>
+            <div className="w-full sm:w-auto grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
+              {/* 导出按钮 */}
+              <button
+                onClick={exportData}
+                className="px-2 sm:px-4 py-2 h-[42px] bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center whitespace-nowrap text-sm sm:text-base"
+              >
+                <Download className="inline-block mr-1 sm:mr-2" size={16} />
+                导出数据
+              </button>
 
-            {/* 导入按钮 */}
-            <label className="px-2 sm:px-4 py-2 h-[42px] bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center cursor-pointer whitespace-nowrap text-sm sm:text-base">
-              <Upload className="inline-block mr-1 sm:mr-2" size={16} />
-              导入数据
-              <input
-                type="file"
-                accept=".json"
-                onChange={importData}
-                className="hidden"
-              />
-            </label>
+              {/* 导入按钮 */}
+              <label className="px-2 sm:px-4 py-2 h-[42px] bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors flex items-center justify-center cursor-pointer whitespace-nowrap text-sm sm:text-base">
+                <Upload className="inline-block mr-1 sm:mr-2" size={16} />
+                导入数据
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={importData}
+                  className="hidden"
+                />
+              </label>
 
-            {/* 添加分类按钮 */}
-            <button
-              onClick={() => setIsCategoryModalOpen(true)}
-              className="px-2 sm:px-4 py-2 h-[42px] bg-green-500 text-white rounded hover:bg-green-600 transition-colors flex items-center justify-center whitespace-nowrap text-sm sm:text-base"
-            >
-              <Folder className="inline-block mr-1 sm:mr-2" size={16} />
-              添加分类
-            </button>
+              {/* 添加分类按钮 */}
+              <button
+                onClick={() => setIsCategoryModalOpen(true)}
+                className="px-2 sm:px-4 py-2 h-[42px] bg-green-500 text-white rounded hover:bg-green-600 transition-colors flex items-center justify-center whitespace-nowrap text-sm sm:text-base"
+              >
+                <Folder className="inline-block mr-1 sm:mr-2" size={16} />
+                添加分类
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* 分类标签页 */}
-        <DragDropContext onDragEnd={onDragEnd}>
-          <Droppable droppableId="categories" direction="horizontal">
-            {(provided) => (
-              <div
+          {/* 分类标签页 */}
+          <Droppable 
+            droppableId="categories" 
+            type="CATEGORY"
+            direction="horizontal"
+          >
+            {(provided, snapshot) => (
+              <div 
+                {...provided.droppableProps} 
                 ref={provided.innerRef}
-                {...provided.droppableProps}
-                className="flex flex-wrap gap-2 mb-8"
+                className={`flex gap-4 mb-6 overflow-x-auto py-4 px-2 transition-colors duration-200
+                  scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent
+                  ${snapshot.isDraggingOver ? 'bg-blue-50/50 rounded-lg' : ''}`}
               >
                 {categories.map((category, index) => (
                   <Draggable 
                     key={category.id} 
                     draggableId={category.id} 
                     index={index}
-                    isDragDisabled={category.id === 'default' || category.id === 'custom'}
+                    isDragDisabled={index < 2}
                   >
                     {(provided, snapshot) => (
-                      <div
+                      <div 
                         ref={provided.innerRef}
-                        className={`flex items-center ${
-                          snapshot.isDragging ? 'opacity-70 shadow-lg scale-105' : ''
-                        }`}
                         {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        onClick={() => setActiveCategory(category.id)}
+                        onDoubleClick={() => {
+                          if (category.id !== 'default' && category.id !== 'custom') {
+                            setEditingCategoryId(category.id);
+                            setEditingName(category.name);
+                          }
+                        }}
+                        className={`px-4 py-2 bg-white rounded-lg flex items-center
+                          h-10 w-[120px] shrink-0 justify-center cursor-pointer group
+                          ${activeCategory === category.id 
+                            ? 'bg-blue-500 text-blue-500 shadow-lg ring-2 ring-blue-300 ring-offset-2 ring-offset-blue-50' 
+                            : 'hover:bg-gray-50 hover:shadow-sm'}`}
+                        style={{
+                          ...provided.draggableProps.style,
+                          transform: snapshot.isDragging 
+                            ? `${provided.draggableProps.style?.transform} scale(1.01) rotate(0.5deg)`
+                            : provided.draggableProps.style?.transform || '',
+                          transition: snapshot.isDragging
+                            ? undefined
+                            : 'all 0.0000001s cubic-bezier(0.33, 1, 0.68, 1)',
+                          transformOrigin: 'center',
+                          zIndex: snapshot.isDragging ? 9999 : 'auto',
+                          opacity: snapshot.isDragging ? 0.9 : 1,
+                          boxShadow: snapshot.isDragging 
+                            ? '0 8px 12px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)'
+                            : undefined
+                        }}
                       >
-                        {/* 拖动柄 */}
-                        {category.id !== 'default' && category.id !== 'custom' && (
-                          <div
-                            {...provided.dragHandleProps}
-                            className="w-6 h-8 flex items-center justify-center mx-1 cursor-grab opacity-40 hover:opacity-100 bg-gray-100 hover:bg-gray-200 rounded transition-all duration-200"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="text-gray-600">
-                              <circle cx="4" cy="4" r="1.5" />
-                              <circle cx="12" cy="4" r="1.5" />
-                              <circle cx="4" cy="12" r="1.5" />
-                              <circle cx="12" cy="12" r="1.5" />
-                              <circle cx="4" cy="8" r="1.5" />
-                              <circle cx="12" cy="8" r="1.5" />
-                            </svg>
-                          </div>
+                        {editingCategoryId === category.id ? (
+                          <input
+                            type="text"
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onBlur={() => {
+                              if (editingName.trim()) {
+                                editCategoryName(category.id, editingName);
+                              }
+                              setEditingCategoryId(null);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && editingName.trim()) {
+                                editCategoryName(category.id, editingName);
+                                setEditingCategoryId(null);
+                              } else if (e.key === 'Escape') {
+                                setEditingCategoryId(null);
+                              }
+                            }}
+                            className="w-full bg-transparent text-center focus:outline-none"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        ) : (
+                          <span className="truncate font-medium select-none">{category.name}</span>
                         )}
-                        
-                        {/* 标签内容 */}
-                        <div className="flex items-center">
-                          {editingCategoryId === category.id ? (
-                            <input
-                              type="text"
-                              value={editingCategoryName}
-                              onChange={(e) => setEditingCategoryName(e.target.value)}
-                              onBlur={() => handleCategoryNameChange(category.id, editingCategoryName)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                  handleCategoryNameChange(category.id, editingCategoryName);
-                                }
-                                if (e.key === 'Escape') {
-                                  setEditingCategoryId(null);
-                                }
-                              }}
-                              autoFocus
-                              className="px-3 py-2 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 h-[42px] text-gray-800 font-medium bg-white"
-                            />
-                          ) : (
-                            <button
-                              onClick={() => setActiveCategory(category.id)}
-                              onDoubleClick={() => {
-                                if (category.id !== 'default' && category.id !== 'custom') {
-                                  setEditingCategoryId(category.id);
-                                  setEditingCategoryName(category.name);
-                                }
-                              }}
-                              className={`px-4 py-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 min-w-[100px] ${
-                                activeCategory === category.id 
-                                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium' 
-                                  : 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-200'
-                              }`}
-                            >
-                              {category.name}
-                            </button>
-                          )}
-                          {category.id !== 'default' && category.id !== 'custom' && (
-                            <span 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                deleteCategory(category.id);
-                              }} 
-                              className="ml-2 text-red-500 hover:text-red-700 cursor-pointer hover:scale-110 transition-transform duration-200"
-                            >
-                              ✕
-                            </span>
-                          )}
-                        </div>
+                        {category.id !== 'default' && category.id !== 'custom' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteCategory(category.id);
+                            }}
+                            className={`ml-2 opacity-0 group-hover:opacity-100 transition-opacity
+                              ${activeCategory === category.id 
+                                ? 'text-white/80 hover:text-red-500' 
+                                : 'hover:text-red-500'}`}
+                          >
+                            ×
+                          </button>
+                        )}
                       </div>
                     )}
                   </Draggable>
@@ -375,67 +370,87 @@ function App() {
               </div>
             )}
           </Droppable>
-        </DragDropContext>
 
-        {/* 书签展示区域 */}
-        {categories.map(category => (
-          activeCategory === category.id && (
-            <div key={category.id} className="mb-8">
-              <h2 className="font-semibold text-gray-800 mb-4 text-xl sm:text-2xl">{category.name}</h2>
-              <div className="bg-white bg-opacity-70 rounded-lg shadow-md p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {category.bookmarks.map((bookmark, index) => (
-                    <BookmarkCard
-                      key={bookmark.id}
-                      bookmark={bookmark}
-                      onEdit={() => {
-                        setEditingBookmark(bookmark);
-                        setActiveCategory(category.id);
-                        setIsModalOpen(true);
-                      }}
-                      onDelete={() => deleteBookmark(bookmark.id, category.id)}
-                      onMoveUp={() => index > 0 && moveBookmark(index, index - 1, category.id)}
-                      onMoveDown={() => index < category.bookmarks.length - 1 && moveBookmark(index, index + 1, category.id)}
-                    />
-                  ))}
-                  <button
-                    onClick={() => {
-                      setActiveCategory(category.id);
-                      setIsModalOpen(true);
-                    }}
-                    className="h-40 bg-white bg-opacity-50 rounded-lg shadow-md flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors duration-200"
-                  >
-                    <Plus size={24} />
-                    <span className="ml-2">添加书签</span>
-                  </button>
-                </div>
+          {/* 书签展示区域 */}
+          {categories.map(category => (
+            activeCategory === category.id && (
+              <div key={category.id} className="mb-8">
+                <h2 className="font-semibold text-gray-800 mb-4 text-xl sm:text-2xl">{category.name}</h2>
+                <Droppable droppableId={category.id} type="BOOKMARK">
+                  {(provided) => (
+                    <div 
+                      {...provided.droppableProps} 
+                      ref={provided.innerRef}
+                      className="bg-white bg-opacity-70 rounded-lg shadow-md p-4"
+                    >
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {category.bookmarks.map((bookmark, index) => (
+                          <Draggable 
+                            key={bookmark.id} 
+                            draggableId={bookmark.id} 
+                            index={index}
+                          >
+                            {(provided) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                              >
+                                <BookmarkCard
+                                  bookmark={bookmark}
+                                  onEdit={() => {
+                                    setEditingBookmark(bookmark);
+                                    setActiveCategory(category.id);
+                                    setIsModalOpen(true);
+                                  }}
+                                  onDelete={() => deleteBookmark(bookmark.id, category.id)}
+                                />
+                              </div>
+                            )}
+                          </Draggable>
+                        ))}
+                        {provided.placeholder}
+                        <button
+                          onClick={() => {
+                            setActiveCategory(category.id);
+                            setIsModalOpen(true);
+                          }}
+                          className="h-40 bg-white bg-opacity-50 rounded-lg shadow-md flex items-center justify-center text-gray-500 hover:text-gray-700 transition-colors duration-200"
+                        >
+                          <Plus size={24} />
+                          <span className="ml-2">添加书签</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </Droppable>
               </div>
-            </div>
-          )
-        ))}
+            )
+          ))}
+        </div>
+
+        {/* 添加书签模态框 */}
+        {isModalOpen && (
+          <AddBookmarkModal
+            onClose={() => {
+              setIsModalOpen(false);
+              setEditingBookmark(null);
+            }}
+            onSave={editingBookmark ? editBookmark : addBookmark}
+            editingBookmark={editingBookmark}
+            folder={activeCategory}
+          />
+        )}
+
+        {/* 添加分类模态框 */}
+        {isCategoryModalOpen && (
+          <AddCategoryModal
+            onClose={() => setIsCategoryModalOpen(false)}
+            onSave={addCategory}
+          />
+        )}
       </div>
-
-      {/* 添加书签模态框 */}
-      {isModalOpen && (
-        <AddBookmarkModal
-          onClose={() => {
-            setIsModalOpen(false);
-            setEditingBookmark(null);
-          }}
-          onSave={editingBookmark ? editBookmark : addBookmark}
-          editingBookmark={editingBookmark}
-          folder={activeCategory}
-        />
-      )}
-
-      {/* 添加分类模态框 */}
-      {isCategoryModalOpen && (
-        <AddCategoryModal
-          onClose={() => setIsCategoryModalOpen(false)}
-          onSave={addCategory}
-        />
-      )}
-    </div>
+    </DragDropContext>
   );
 }
 

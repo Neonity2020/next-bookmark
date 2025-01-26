@@ -17,6 +17,7 @@ interface AddBookmarkModalProps {
 }
 
 const colorOptions = [
+  'bg-white',
   'bg-blue-100',
   'bg-red-100',
   'bg-green-100',
@@ -25,6 +26,7 @@ const colorOptions = [
   'bg-pink-100',
   'bg-indigo-100',
   'bg-teal-100',
+
 ];
 
 const AddBookmarkModal: React.FC<AddBookmarkModalProps> = ({ onClose, onSave, editingBookmark }) => {
@@ -101,6 +103,7 @@ const AddBookmarkModal: React.FC<AddBookmarkModalProps> = ({ onClose, onSave, ed
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700"
               rows={3}
+              placeholder="添加书签的简短描述（可选）"
             />
           </div>
           <div className="mb-4">
