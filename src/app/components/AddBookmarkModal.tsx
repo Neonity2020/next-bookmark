@@ -17,7 +17,7 @@ interface AddBookmarkModalProps {
 }
 
 const colorOptions = [
-  'bg-white',
+
   'bg-blue-100',
   'bg-red-100',
   'bg-green-100',
@@ -26,7 +26,7 @@ const colorOptions = [
   'bg-pink-100',
   'bg-indigo-100',
   'bg-teal-100',
-
+  'bg-white',
 ];
 
 const AddBookmarkModal: React.FC<AddBookmarkModalProps> = ({ onClose, onSave, editingBookmark }) => {

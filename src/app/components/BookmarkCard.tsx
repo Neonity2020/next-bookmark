@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit2, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Edit2, Trash2} from 'lucide-react';
 import Image from 'next/image';
 
 interface Bookmark {
@@ -36,7 +36,7 @@ const truncateUrl = (url: string, maxLength: number = 20) => {
   return `${truncatedDomain}${pathEnd}${pathEnd ? '...' : ''}`;
 };
 
-const BookmarkCard: React.FC<BookmarkCardProps> = ({ bookmark, onEdit, onDelete, onMoveUp, onMoveDown }) => {
+const BookmarkCard: React.FC<BookmarkCardProps> = ({ bookmark, onEdit, onDelete }) => {
   const [faviconUrl, setFaviconUrl] = React.useState('/favicon.ico'); // 默认为本地 favicon
 
   React.useEffect(() => {
@@ -107,21 +107,7 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({ bookmark, onEdit, onDelete,
           </a>
         </div>
       </div>
-      <div className="bg-gray-100 bg-opacity-20 p-2 flex justify-between">
-        <div>
-          <button
-            onClick={onMoveUp}
-            className="text-gray-900 hover:text-gray-200 mr-2"
-          >
-            <ChevronUp size={18} />
-          </button>
-          <button
-            onClick={onMoveDown}
-            className="text-gray-900 hover:text-gray-200"
-          >
-            <ChevronDown size={18} />
-          </button>
-        </div>
+      <div className="bg-gray-100 bg-opacity-20 p-2 flex justify-end">
         <div>
           <button
             onClick={onEdit}
