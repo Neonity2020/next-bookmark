@@ -17,20 +17,20 @@ interface AddBookmarkModalProps {
 }
 
 const colorOptions = [
-  'bg-blue-500',
-  'bg-red-500',
-  'bg-green-500',
-  'bg-yellow-500',
-  'bg-purple-500',
-  'bg-pink-500',
-  'bg-indigo-500',
-  'bg-teal-500',
+  'bg-blue-100',
+  'bg-red-100',
+  'bg-green-100',
+  'bg-yellow-100',
+  'bg-purple-100',
+  'bg-pink-100',
+  'bg-indigo-100',
+  'bg-teal-100',
 ];
 
 const AddBookmarkModal: React.FC<AddBookmarkModalProps> = ({ onClose, onSave, editingBookmark }) => {
   const [title, setTitle] = useState(editingBookmark?.title || '');
   const [url, setUrl] = useState(editingBookmark?.url || '');
-  const [color, setColor] = useState(editingBookmark?.color || 'bg-blue-500');
+  const [color, setColor] = useState(editingBookmark?.color || 'bg-blue-200');
   const [description, setDescription] = useState(editingBookmark?.description || ''); // 新增
 
   useEffect(() => {
