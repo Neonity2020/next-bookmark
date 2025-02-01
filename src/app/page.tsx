@@ -14,6 +14,7 @@ interface Bookmark {
   url: string;
   color: string;
   description: string;
+  ogImage?: string;
 }
 
 type CategoryId = 'default' | 'custom' | string;
@@ -225,6 +226,24 @@ function App() {
     }
   };
 
+  const handleRemoveOgImage = (bookmarkId: string) => {
+    // 更新书签，移除 ogImage
+    const updatedBookmarks = categories.map(category => ({
+      ...category,
+      bookmarks: category.bookmarks.map(bookmark => 
+        bookmark.id === bookmarkId 
+          ? { ...bookmark, ogImage: undefined } 
+          : bookmark
+      )
+    }));
+    
+    // 更新状态
+    setCategories(updatedBookmarks);
+
+    // 可选：如果使用后端，发送更新请求
+    // updateBookmarkOnServer(bookmarkId, { ogImage: null });
+  };
+
   if (!mounted) {
     return null;
   }
@@ -416,6 +435,7 @@ function App() {
                                     setIsModalOpen(true);
                                   }}
                                   onDelete={() => deleteBookmark(bookmark.id, category.id)}
+                                  onRemoveOgImage={() => handleRemoveOgImage(bookmark.id)}
                                 />
                               </div>
                             )}

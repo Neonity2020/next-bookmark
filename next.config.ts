@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
       'neomatrix.netlify.app', 
       // 添加其他可能的域名
     ],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
   },
 };
 
