@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Edit2, Trash2, X } from 'lucide-react';
 import Image from 'next/image';
 
@@ -46,6 +46,7 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({
 }) => {
   const [faviconUrl, setFaviconUrl] = React.useState('/favicon.ico');
   const [backgroundImage, setBackgroundImage] = React.useState<string | null>(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   React.useEffect(() => {
     // 优先使用 OG 图片作为背景
@@ -91,20 +92,22 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({
 
   return (
     <div 
-      className={`rounded-lg shadow-md overflow-hidden flex flex-col relative ${bookmark.color}`}
+      className={`rounded-lg shadow-md overflow-hidden flex flex-col relative group ${bookmark.color}`}
       style={{
         backgroundImage: backgroundImage ? `url(${backgroundImage})` : 'none',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        zIndex: 10
+        zIndex: 0
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* 添加删除 OG 图片的按钮 */}
-      {backgroundImage && (
+      {/* 删除 OG 图片按钮 - 仅在悬停和有背景图时显示 */}
+      {backgroundImage && isHovered && (
         <button
           onClick={onRemoveOgImage}
-          className="absolute top-2 right-2 z-30 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+          className="absolute top-2 right-2 z-30 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-all duration-200"
           title="删除预览图"
         >
           <X size={16} />
@@ -114,11 +117,11 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({
       {/* 背景模糊效果 */}
       {backgroundImage && (
         <div 
-          className="absolute inset-0 bg-blue-300 bg-opacity-50" 
+          className="absolute inset-0 bg-sky-700 bg-opacity-50" 
           style={{
             backdropFilter: 'blur(2px)', 
             WebkitBackdropFilter: 'blur(2px)', 
-            filter: 'brightness(0.6)'
+            filter: 'brightness(0.9)'
           }}
         />
       )}
@@ -163,7 +166,9 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({
           ? 'bg-black bg-opacity-30' 
           : 'bg-gray-100 bg-opacity-20'
       }`}>
-        <div>
+        <div className={`flex items-center transition-all duration-200 ${
+          isHovered ? 'opacity-100' : 'opacity-0'
+        }`}>
           <button
             onClick={onEdit}
             className={`hover:text-gray-200 mr-2 ${
