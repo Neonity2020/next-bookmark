@@ -6,6 +6,7 @@ import { Plus, Folder, Download, Upload } from 'lucide-react';
 import BookmarkCard from './components/BookmarkCard';
 import AddBookmarkModal from './components/AddBookmarkModal';
 import AddCategoryModal from './components/AddCategoryModal';
+import Image from 'next/image';
 
 interface Bookmark {
   id: string;
@@ -234,7 +235,18 @@ function App() {
         <div className="max-w-6xl mx-auto">
           {/* 分类管理区域 */}
           <div className="mb-8 flex flex-col sm:flex-row items-center justify-between space-y-4 sm:space-y-0">
-            <h1 className="text-xl sm:text-4xl font-bold text-gray-800 whitespace-nowrap">我的网址导航</h1>
+            {/* 添加logo */}
+            <div className="flex items-center space-x-4">
+              <Image 
+                src="/logo.png"  // 请确保在 public 文件夹中放置 logo.png
+                alt="网址导航 Logo" 
+                width={50} 
+                height={50} 
+                className="rounded-lg"
+              />
+              <h1 className="text-xl sm:text-4xl font-bold text-gray-800 whitespace-nowrap">我的网址导航</h1>
+            </div>
+            
             <div className="w-full sm:w-auto grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
               {/* 导出按钮 */}
               <button
