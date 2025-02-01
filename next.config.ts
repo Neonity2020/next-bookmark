@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
       'icon.horse', 
       'neomatrix.netlify.app', 
       'uigradients.com',
+      'colrd.com',
       // 添加其他可能的域名
     ],
     remotePatterns: [
