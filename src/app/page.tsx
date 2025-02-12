@@ -245,35 +245,6 @@ function App() {
     // updateBookmarkOnServer(bookmarkId, { ogImage: null });
   };
 
-  const handleAddToCustom = (bookmark: Bookmark, originalCategoryId: string) => {
-    setCategories(prev => 
-      prev.map(c => 
-        c.id === 'custom' 
-          ? { ...c, bookmarks: [bookmark, ...c.bookmarks] }
-          : c.id === originalCategoryId
-          ? { ...c, bookmarks: c.bookmarks.filter(b => b.id !== bookmark.id) }
-          : c
-      )
-    );
-  };
-
-  const handleRemoveFromCustom = (bookmarkId: string) => {
-    setCategories(prev => {
-      const customCategory = prev.find(c => c.id === 'custom');
-      const bookmark = customCategory?.bookmarks.find(b => b.id === bookmarkId);
-      if (!bookmark || !bookmark.originalCategoryId) return prev;
-
-      return prev.map(c => {
-        if (c.id === 'custom') {
-          return { ...c, bookmarks: c.bookmarks.filter(b => b.id !== bookmarkId) };
-        } else if (c.id === bookmark.originalCategoryId) {
-          return { ...c, bookmarks: [...c.bookmarks, bookmark] };
-        }
-        return c;
-      });
-    });
-  };
-
   const handleToggleCustom = (bookmark: Bookmark, originalCategoryId: string) => {
     setCategories(prev => {
       // Check if bookmark exists in custom folder

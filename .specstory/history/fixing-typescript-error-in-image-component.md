@@ -263,7 +263,83 @@ const handleToggleCustom = (bookmark: Bookmark, originalCategoryId: string) => {
 ```
 
 这个修改会：
-1. 检查书签是否已存在于自定义
+1. 检查书签是否已存在于自定义收藏夹中
+2. 如果存在，则移除它（取消收藏）
+3. 如果不存在，则添加它（添加收藏）
+4. 保持星标图标状态与收藏状态同步
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+'handleAddToCustom' is declared but its value is never read.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+Since we've replaced the `handleAddToCustom` functionality with `handleToggleCustom`, we can simply remove the unused `handleAddToCustom` function:
+
+```typescript:src/app/page.tsx
+// ... existing code ...
+// Remove this unused function
+- const handleAddToCustom = (bookmark: Bookmark, originalCategoryId: string) => {
+-   setCategories(prev => 
+-     prev.map(c => 
+-       c.id === 'custom' 
+-         ? { ...c, bookmarks: [bookmark, ...c.bookmarks] }
+-         : c.id === originalCategoryId
+-         ? { ...c, bookmarks: c.bookmarks.filter(b => b.id !== bookmark.id) }
+-         : c
+-     )
+-   );
+- };
+// ... existing code ...
+```
+
+---
+
+_**User**_
+
+For the code present, we get this error:
+```
+'handleRemoveFromCustom' is declared but its value is never read.
+```
+How can I resolve this? If you propose a fix, please make it concise.
+
+---
+
+_**Assistant**_
+
+
+
+Since `handleRemoveFromCustom` has been replaced by the `handleToggleCustom` function, we can simply remove the unused function:
+
+```typescript:src/app/page.tsx
+// Remove this unused function
+- const handleRemoveFromCustom = (bookmarkId: string) => {
+-   setCategories(prev => {
+-     const customCategory = prev.find(c => c.id === 'custom');
+-     const bookmark = customCategory?.bookmarks.find(b => b.id === bookmarkId);
+-     if (!bookmark || !bookmark.originalCategoryId) return prev;
+-
+-     return prev.map(c => {
+-       if (c.id === 'custom') {
+-         return { ...c, bookmarks: c.bookmarks.filter(b => b.id !== bookmarkId) };
+-       } else if (c.id === bookmark.originalCategoryId) {
+-         return { ...c, bookmarks: [...c.bookmarks, bookmark] };
+-       }
+-       return c;
+-     });
+-   });
+- };
+```
 
 ---
 

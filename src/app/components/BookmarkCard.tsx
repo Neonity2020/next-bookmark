@@ -48,8 +48,6 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({
   onEdit, 
   onDelete, 
   onRemoveOgImage,
-  onAddToCustom,
-  onRemoveFromCustom,
   isInCustom,
   onToggleCustom
 }) => {
