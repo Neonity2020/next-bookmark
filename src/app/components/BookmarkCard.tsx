@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Edit2, Trash2, X } from 'lucide-react';
+import { Edit2, Trash2, X, Star } from 'lucide-react';
 import Image from 'next/image';
 
 interface Bookmark {
@@ -9,6 +9,7 @@ interface Bookmark {
   color: string;
   description?: string;
   ogImage?: string; // 新增 OG 图片字段
+  originalCategoryId?: string; // 新增原始分类ID
 }
 
 interface BookmarkCardProps {
@@ -16,8 +17,12 @@ interface BookmarkCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onRemoveOgImage: () => void; // 新增删除 OG 图片的回调
+  onAddToCustom?: () => void; // Make this optional
+  onRemoveFromCustom?: () => void; // 新增移除回调
+  isInCustom?: boolean; // 新增是否在自定义收藏夹中的标记
   onMoveUp?: () => void;
   onMoveDown?: () => void;
+  onToggleCustom: () => void; // 合并添加/移除的回调
 }
 
 const truncateUrl = (url: string, maxLength: number = 20) => {
@@ -42,7 +47,11 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({
   bookmark, 
   onEdit, 
   onDelete, 
-  onRemoveOgImage 
+  onRemoveOgImage,
+  onAddToCustom,
+  onRemoveFromCustom,
+  isInCustom,
+  onToggleCustom
 }) => {
   const [faviconUrl, setFaviconUrl] = React.useState('/favicon.ico');
   const [backgroundImage, setBackgroundImage] = React.useState<string | null>(null);
@@ -66,10 +75,10 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({
         return;
       }
 
+      // 修改回退方案，避免使用 SVG
       const fallbackOptions = [
-        `https://icon.horse/icon/${hostname}`,
-        `https://www.google.com/s2/favicons?domain=${hostname}`,
-        `https://favicon.githubusercontent.com/v1/${hostname}`,
+        `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`, // 优先使用 Google 的 favicon 服务
+        `https://faviconextra.com/v1/${hostname}.png`, // 使用提供 PNG 格式的服务
         '/favicon.ico'
       ];
 
@@ -170,8 +179,18 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({
           isHovered ? 'opacity-100' : 'opacity-0'
         }`}>
           <button
+            onClick={onToggleCustom}
+            className={`hover:text-yellow-400 mr-2 ${backgroundImage ? 'text-white' : 'text-gray-900'}`}
+            title={isInCustom ? "移出收藏夹" : "加入收藏夹"}
+          >
+            <Star 
+              size={18} 
+              fill={isInCustom ? 'currentColor' : 'transparent'}
+            />
+          </button>
+          <button
             onClick={onEdit}
-            className={`hover:text-gray-200 mr-2 ${
+            className={`hover:text-blue-200 mr-2 ${
               backgroundImage ? 'text-white' : 'text-gray-900'
             }`}
           >
@@ -179,7 +198,7 @@ const BookmarkCard: React.FC<BookmarkCardProps> = ({
           </button>
           <button
             onClick={onDelete}
-            className={`hover:text-gray-200 ${
+            className={`hover:text-red-200 ${
               backgroundImage ? 'text-white' : 'text-gray-900'
             }`}
           >

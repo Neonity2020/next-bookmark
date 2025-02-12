@@ -15,6 +15,7 @@ interface Bookmark {
   color: string;
   description: string;
   ogImage?: string;
+  originalCategoryId?: string;
 }
 
 type CategoryId = 'default' | 'custom' | string;
@@ -244,6 +245,76 @@ function App() {
     // updateBookmarkOnServer(bookmarkId, { ogImage: null });
   };
 
+  const handleAddToCustom = (bookmark: Bookmark, originalCategoryId: string) => {
+    setCategories(prev => 
+      prev.map(c => 
+        c.id === 'custom' 
+          ? { ...c, bookmarks: [bookmark, ...c.bookmarks] }
+          : c.id === originalCategoryId
+          ? { ...c, bookmarks: c.bookmarks.filter(b => b.id !== bookmark.id) }
+          : c
+      )
+    );
+  };
+
+  const handleRemoveFromCustom = (bookmarkId: string) => {
+    setCategories(prev => {
+      const customCategory = prev.find(c => c.id === 'custom');
+      const bookmark = customCategory?.bookmarks.find(b => b.id === bookmarkId);
+      if (!bookmark || !bookmark.originalCategoryId) return prev;
+
+      return prev.map(c => {
+        if (c.id === 'custom') {
+          return { ...c, bookmarks: c.bookmarks.filter(b => b.id !== bookmarkId) };
+        } else if (c.id === bookmark.originalCategoryId) {
+          return { ...c, bookmarks: [...c.bookmarks, bookmark] };
+        }
+        return c;
+      });
+    });
+  };
+
+  const handleToggleCustom = (bookmark: Bookmark, originalCategoryId: string) => {
+    setCategories(prev => {
+      // Check if bookmark exists in custom folder
+      const customFolder = prev.find(c => c.id === 'custom');
+      const existingCustomBookmark = customFolder?.bookmarks.find(b => 
+        b.originalCategoryId === originalCategoryId && b.url === bookmark.url
+      );
+
+      return prev.map(c => {
+        // If in custom folder, remove it
+        if (c.id === 'custom') {
+          if (originalCategoryId === 'custom') {
+            // Remove from custom folder if it's already there
+            return {
+              ...c,
+              bookmarks: c.bookmarks.filter(b => b.id !== bookmark.id)
+            };
+          } else if (existingCustomBookmark) {
+            // Remove the duplicate from custom folder
+            return {
+              ...c,
+              bookmarks: c.bookmarks.filter(b => b.id !== existingCustomBookmark.id)
+            };
+          } else {
+            // Add to custom folder with new ID
+            const newBookmark = {
+              ...bookmark,
+              id: Date.now().toString(),
+              originalCategoryId
+            };
+            return {
+              ...c,
+              bookmarks: [newBookmark, ...c.bookmarks]
+            };
+          }
+        }
+        return c;
+      });
+    });
+  };
+
   if (!mounted) {
     return null;
   }
@@ -436,6 +507,13 @@ function App() {
                                   }}
                                   onDelete={() => deleteBookmark(bookmark.id, category.id)}
                                   onRemoveOgImage={() => handleRemoveOgImage(bookmark.id)}
+                                  onToggleCustom={() => handleToggleCustom(bookmark, category.id)}
+                                  isInCustom={
+                                    category.id === 'custom' || 
+                                    categories.find(c => c.id === 'custom')?.bookmarks.some(b => 
+                                      b.originalCategoryId === category.id && b.url === bookmark.url
+                                    )
+                                  }
                                 />
                               </div>
                             )}
